@@ -1,4 +1,3 @@
-# Code borrowed from http://stackoverflow.com/questions/6809590/merging-a-python-scripts-subprocess-stdout-and-stderr-while-keeping-them-disti/6810231#6810231
 import subprocess
 import select
 from logging import DEBUG, ERROR
@@ -12,28 +11,17 @@ def call(popenargs, logger, stdout_log_level=DEBUG, stderr_log_level=ERROR, **kw
     """
     child = subprocess.Popen(popenargs, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, **kwargs)
-    poll = select.poll()
-    poll.register(child.stdout, select.POLLIN | select.POLLHUP)
-    poll.register(child.stderr, select.POLLIN | select.POLLHUP)
-    pollc = 2
-    events = poll.poll()
-    while pollc > 0 and len(events) > 0:
-        for rfd, event in events:
-            if event & select.POLLIN:
-                if rfd == child.stdout.fileno():
-                    line = child.stdout.readline()
-                    if len(line) > 0:
-                        logger.log(stdout_log_level, line[:-1])
-                if rfd == child.stderr.fileno():
-                    line = child.stderr.readline()
-                    if len(line) > 0:
-                        logger.log(stderr_log_level, line[:-1])
-            if event & select.POLLHUP:
-                poll.unregister(rfd)
-                pollc -= 1
-            if pollc > 0:
-                events = poll.poll()
+
+    log_level = {child.stdout: stdout_log_level,
+                 child.stderr: stderr_log_level}
+    while child.poll() is None:
+        ready_to_read = select.select([child.stdout, child.stderr], [], [], 1000)[0]
+        for io in ready_to_read:
+            line = io.readline()
+            logger.log(log_level[io], line[:-1])
+
     return child.wait()
+
 
 # tests, plunked in here for convenience
 
