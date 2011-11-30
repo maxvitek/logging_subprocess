@@ -14,11 +14,18 @@ def call(popenargs, logger, stdout_log_level=DEBUG, stderr_log_level=ERROR, **kw
 
     log_level = {child.stdout: stdout_log_level,
                  child.stderr: stderr_log_level}
-    while child.poll() is None:
+
+    def check_io():
         ready_to_read = select.select([child.stdout, child.stderr], [], [], 1000)[0]
         for io in ready_to_read:
             line = io.readline()
             logger.log(log_level[io], line[:-1])
+
+    # keep checking stdin/stdout until the child exits
+    while child.poll() is None:
+        check_io()
+
+    check_io()  # check again to catch anything after the process exits
 
     return child.wait()
 
