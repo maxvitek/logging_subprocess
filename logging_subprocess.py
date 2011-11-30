@@ -21,7 +21,7 @@ def call(popenargs, logger, stdout_log_level=DEBUG, stderr_log_level=ERROR, **kw
             line = io.readline()
             logger.log(log_level[io], line[:-1])
 
-    # keep checking stdin/stdout until the child exits
+    # keep checking stdout/stderr until the child exits
     while child.poll() is None:
         check_io()
 
