@@ -19,7 +19,8 @@ def call(popenargs, logger, stdout_log_level=DEBUG, stderr_log_level=ERROR, **kw
         ready_to_read = select.select([child.stdout, child.stderr], [], [], 1000)[0]
         for io in ready_to_read:
             line = io.readline()
-            logger.log(log_level[io], line[:-1])
+            if not (io == child.stderr and not line):
+                logger.log(log_level[io], line[:-1])
 
     # keep checking stdout/stderr until the child exits
     while child.poll() is None:
